@@ -1,0 +1,128 @@
+@page "/reports"
+@inject ReportService ReportService
+@inject ISnackbar Snackbar
+
+<PageTitle>Báo cáo tồn kho - StockDemo Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Báo cáo biến động tồn kho</MudText>
+
+<MudPaper Elevation="1" Class="pa-4 mb-4">
+    <div class="d-flex align-center flex-wrap gap-4">
+        <MudDateRangePicker @bind-DateRange="_range" Label="Khoảng thời gian" Variant="Variant.Outlined"
+                            Style="max-width: 360px;" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                   OnClick="LoadAsync" Disabled="_loading">Xem báo cáo</MudButton>
+    </div>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+}
+else if (_report is not null)
+{
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <StatCard Title="Tổng nhập" Value="@_report.TotalIn.ToString("N0")"
+                      Icon="@Icons.Material.Filled.Login" Color="Color.Success" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <StatCard Title="Tổng xuất" Value="@_report.TotalOut.ToString("N0")"
+                      Icon="@Icons.Material.Filled.Logout" Color="Color.Error" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <StatCard Title="Tồn hiện tại" Value="@_report.TotalStock.ToString("N0")"
+                      Icon="@Icons.Material.Filled.Warehouse" Color="Color.Primary" />
+        </MudItem>
+    </MudGrid>
+
+    @if (_chart.Count > 0)
+    {
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <div class="d-flex align-center mb-3" style="gap: 16px;">
+                <MudText Typo="Typo.h6">Nhập / Xuất theo sản phẩm</MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Nhập</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Xuất</MudChip>
+            </div>
+            @foreach (var row in _chart)
+            {
+                <div class="mb-3">
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2"><b>@row.Label</b></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nhập @row.In · Xuất @row.Out</MudText>
+                    </div>
+                    <div style="height:10px;background:var(--mud-palette-success);border-radius:4px;width:@(Pct(row.In))%;min-width:2px;"></div>
+                    <div style="height:10px;background:var(--mud-palette-error);border-radius:4px;width:@(Pct(row.Out))%;min-width:2px;margin-top:3px;"></div>
+                </div>
+            }
+        </MudPaper>
+    }
+
+    <MudPaper Elevation="1">
+        <MudTable Items="_report.Items" Hover="true" Striped="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Mã SP</MudTh>
+                <MudTh>Tên sản phẩm</MudTh>
+                <MudTh Style="text-align:right">Nhập</MudTh>
+                <MudTh Style="text-align:right">Xuất</MudTh>
+                <MudTh Style="text-align:right">Tồn hiện tại</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mã SP">@context.Product?.ProductCode</MudTd>
+                <MudTd DataLabel="Tên sản phẩm">@context.Product?.ProductName</MudTd>
+                <MudTd DataLabel="Nhập" Style="text-align:right; color: var(--mud-palette-success)">+@context.TotalIn</MudTd>
+                <MudTd DataLabel="Xuất" Style="text-align:right; color: var(--mud-palette-error)">-@context.TotalOut</MudTd>
+                <MudTd DataLabel="Tồn hiện tại" Style="text-align:right"><b>@context.CurrentStock</b></MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText Class="pa-4">Không có biến động trong khoảng thời gian này.</MudText></NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private DateRange _range = new(DateTime.Today.AddDays(-30), DateTime.Today);
+    private StockMovementReportDto? _report;
+    private List<(string Label, int In, int Out)> _chart = new();
+    private int _chartMax = 1;
+    private bool _loading;
+
+    private double Pct(int value) => _chartMax <= 0 ? 0 : Math.Round(value * 100.0 / _chartMax, 1);
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var from = _range.Start ?? DateTime.Today.AddDays(-30);
+        var to = _range.End ?? DateTime.Today;
+
+        _loading = true;
+        var result = await ReportService.GetStockMovementAsync(from, to);
+        _loading = false;
+
+        if (!result.Success || result.Data is null)
+        {
+            Snackbar.Add(result.Message ?? "Không tải được báo cáo", Severity.Error);
+            return;
+        }
+
+        _report = result.Data;
+        BuildChart();
+    }
+
+    private void BuildChart()
+    {
+        if (_report is null) { _chart = new(); return; }
+
+        // Top products by total movement (in + out) for a readable chart.
+        var top = _report.Items
+            .Where(i => i.TotalIn + i.TotalOut > 0)
+            .OrderByDescending(i => i.TotalIn + i.TotalOut)
+            .Take(8)
+            .ToList();
+
+        _chart = top
+            .Select(i => (Label: i.Product?.ProductCode ?? $"#{i.ProductId}", In: i.TotalIn, Out: i.TotalOut))
+            .ToList();
+        _chartMax = Math.Max(1, _chart.SelectMany(r => new[] { r.In, r.Out }).DefaultIfEmpty(1).Max());
+    }
+}

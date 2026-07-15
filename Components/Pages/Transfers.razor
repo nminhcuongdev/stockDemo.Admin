@@ -1,0 +1,78 @@
+@page "/transfers"
+@inject TransferService TransferService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Điều chuyển kho - StockDemo Admin</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">Điều chuyển kho</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="OpenCreateAsync">
+        Tạo điều chuyển
+    </MudButton>
+</div>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm sản phẩm / vị trí..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Sản phẩm</MudTh>
+            <MudTh>Từ vị trí</MudTh>
+            <MudTh>Đến vị trí</MudTh>
+            <MudTh Style="text-align:right">Số lượng</MudTh>
+            <MudTh>Người tạo</MudTh>
+            <MudTh>Ngày</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="Từ vị trí">@(context.FromLocation?.LocationName ?? $"#{context.FromLocationId}")</MudTd>
+            <MudTd DataLabel="Đến vị trí">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Class="mr-1" />
+                @(context.ToLocation?.LocationName ?? $"#{context.ToLocationId}")
+            </MudTd>
+            <MudTd DataLabel="Số lượng" Style="text-align:right"><b>@context.Quantity</b></MudTd>
+            <MudTd DataLabel="Người tạo">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
+            <MudTd DataLabel="Ngày">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Class="pa-4">Chưa có phiếu điều chuyển nào.</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<StockTransferDto> _items = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await TransferService.GetAllAsync();
+        if (result.Success) _items = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Không tải được danh sách điều chuyển", Severity.Error);
+        _loading = false;
+    }
+
+    private bool Filter(StockTransferDto t)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return (t.Product?.ProductName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (t.FromLocation?.LocationName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (t.ToLocation?.LocationName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<Dialogs.TransferDialog>("Tạo điều chuyển");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+}

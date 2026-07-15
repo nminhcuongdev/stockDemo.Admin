@@ -1,0 +1,66 @@
+@page "/delivery-orders"
+@inject DeliveryOrderService DeliveryOrderService
+@inject ISnackbar Snackbar
+
+<PageTitle>Đơn giao hàng - StockDemo Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Đơn giao hàng</MudText>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm PO / sản phẩm..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Số PO</MudTh>
+            <MudTh>Sản phẩm</MudTh>
+            <MudTh Style="text-align:right">Số lượng</MudTh>
+            <MudTh>Ngày giao</MudTh>
+            <MudTh>Trạng thái</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Số PO">@context.PONumber</MudTd>
+            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="Số lượng" Style="text-align:right">@context.Quantity</MudTd>
+            <MudTd DataLabel="Ngày giao">@context.DeliveryDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Trạng thái">
+                <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Class="pa-4">Chưa có đơn giao hàng nào.</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<DeliveryOrderDto> _items = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await DeliveryOrderService.GetAllAsync();
+        if (result.Success) _items = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Không tải được đơn giao hàng", Severity.Error);
+        _loading = false;
+    }
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "Delivered" => Color.Success,
+        "InTransit" => Color.Info,
+        "Pending" => Color.Warning,
+        "Cancelled" => Color.Error,
+        _ => Color.Default,
+    };
+
+    private bool Filter(DeliveryOrderDto d)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return d.PONumber.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || (d.Product?.ProductName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+}

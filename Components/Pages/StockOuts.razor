@@ -1,0 +1,68 @@
+@page "/stock-outs"
+@inject MovementService MovementService
+@inject ISnackbar Snackbar
+
+<PageTitle>Xuất kho - StockDemo Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Lịch sử xuất kho</MudText>
+
+<MudPaper Elevation="1">
+    <MudTable Items="Filtered" Loading="_loading" Hover="true" Striped="true">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm sản phẩm / mã / vị trí..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+            <MudSpacer />
+            <MudDateRangePicker @bind-DateRange="_range" Label="Khoảng thời gian" Clearable="true"
+                                Class="mt-0" Style="max-width: 320px;" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Mã phiếu</MudTh>
+            <MudTh>Sản phẩm</MudTh>
+            <MudTh>Vị trí</MudTh>
+            <MudTh Style="text-align:right">Số lượng</MudTh>
+            <MudTh>Người tạo</MudTh>
+            <MudTh>Ngày</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mã phiếu">@context.StockOutCode</MudTd>
+            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="Vị trí">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
+            <MudTd DataLabel="Số lượng" Style="text-align:right">
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">-@context.Quantity</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Người tạo">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
+            <MudTd DataLabel="Ngày">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Class="pa-4">Không có phiếu xuất nào.</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<StockOutDto> _items = new();
+    private string _search = string.Empty;
+    private DateRange? _range;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await MovementService.GetStockOutsAsync();
+        if (result.Success) _items = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Không tải được lịch sử xuất kho", Severity.Error);
+        _loading = false;
+    }
+
+    private IEnumerable<StockOutDto> Filtered => _items.Where(Match);
+
+    private bool Match(StockOutDto x)
+    {
+        if (_range?.Start is { } start && x.CreatedDate.Date < start.Date) return false;
+        if (_range?.End is { } end && x.CreatedDate.Date > end.Date) return false;
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return (x.Product?.ProductName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (x.StockOutCode?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (x.Location?.LocationName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+}

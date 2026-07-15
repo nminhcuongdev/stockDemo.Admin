@@ -21,6 +21,8 @@ public class UserSession
 
     public string? Token => IsAuthenticated ? Current!.Token : null;
 
+    public int? CurrentUserId => Current?.UserId;
+
     /// <summary>Loads the persisted session on first use (safe to call repeatedly).</summary>
     public async Task EnsureLoadedAsync()
     {

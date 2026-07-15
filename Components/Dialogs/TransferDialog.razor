@@ -1,0 +1,116 @@
+@inject StockService StockService
+@inject LocationService LocationService
+@inject TransferService TransferService
+@inject UserSession Session
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        }
+        else
+        {
+            <MudForm @ref="_form">
+                <MudSelect T="int" @bind-Value="_sourceStockId" Label="Tồn kho nguồn" Required="true"
+                           RequiredError="Chọn tồn kho nguồn" Variant="Variant.Outlined" Class="mb-3"
+                           ToStringFunc="StockLabel">
+                    @foreach (var s in _stocks.Where(s => s.Quantity > 0))
+                    {
+                        <MudSelectItem T="int" Value="s.StockId">@StockLabel(s.StockId)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="int" @bind-Value="_toLocationId" Label="Vị trí đích" Required="true"
+                           RequiredError="Chọn vị trí đích" Variant="Variant.Outlined" Class="mb-3">
+                    @foreach (var l in _locations.Where(l => l.IsActive && l.LocationId != SourceLocationId))
+                    {
+                        <MudSelectItem T="int" Value="l.LocationId">@l.LocationName (@l.LocationCode)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudNumericField @bind-Value="_quantity" Label="Số lượng" Min="1" Max="MaxQuantity"
+                                 Required="true" Variant="Variant.Outlined" />
+                @if (MaxQuantity > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Tối đa: @MaxQuantity</MudText>
+                }
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_saving || _loading">
+            @(_saving ? "Đang chuyển..." : "Điều chuyển")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private List<StockDto> _stocks = new();
+    private List<LocationDto> _locations = new();
+    private int _sourceStockId;
+    private int _toLocationId;
+    private int _quantity = 1;
+    private bool _loading = true;
+    private bool _saving;
+
+    private StockDto? SourceStock => _stocks.FirstOrDefault(s => s.StockId == _sourceStockId);
+    private int SourceLocationId => SourceStock?.LocationId ?? 0;
+    private int MaxQuantity => SourceStock?.Quantity ?? 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var stocks = await StockService.GetAllAsync();
+        var locations = await LocationService.GetAllAsync();
+        _stocks = stocks.Data ?? new();
+        _locations = locations.Data ?? new();
+        _loading = false;
+    }
+
+    private string StockLabel(int stockId)
+    {
+        var s = _stocks.FirstOrDefault(x => x.StockId == stockId);
+        if (s is null) return "";
+        return $"{s.Product?.ProductName ?? $"#{s.ProductId}"} @ {s.Location?.LocationName ?? $"#{s.LocationId}"} (tồn {s.Quantity})";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_quantity > MaxQuantity)
+        {
+            Snackbar.Add($"Số lượng vượt quá tồn nguồn ({MaxQuantity}).", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        var dto = new TransferStockDto
+        {
+            SourceStockId = _sourceStockId,
+            ToLocationId = _toLocationId,
+            Quantity = _quantity,
+            CreatedBy = Session.CurrentUserId ?? 0,
+        };
+        var result = await TransferService.CreateAsync(dto);
+        _saving = false;
+
+        if (result.Success)
+        {
+            Snackbar.Add("Điều chuyển thành công", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Điều chuyển thất bại", Severity.Error);
+        }
+    }
+}

@@ -11,6 +11,16 @@ public class ApiResponse<T>
     public List<string>? Errors { get; set; }
 }
 
+/// <summary>Mirrors StockDemo.API's PagedResult&lt;T&gt; (used by paginated list endpoints).</summary>
+public class PagedResult<T>
+{
+    public List<T> Items { get; set; } = new();
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages { get; set; }
+}
+
 public class LoginRequest
 {
     [Required(ErrorMessage = "Tên đăng nhập là bắt buộc")]

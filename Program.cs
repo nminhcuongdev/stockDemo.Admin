@@ -33,6 +33,10 @@ builder.Services.AddScoped<LocationService>();
 builder.Services.AddScoped<StockService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<MovementService>();
+builder.Services.AddScoped<TransferService>();
+builder.Services.AddScoped<DeliveryOrderService>();
+builder.Services.AddScoped<ReportService>();
 
 var app = builder.Build();
 
