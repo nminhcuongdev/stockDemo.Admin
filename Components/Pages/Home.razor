@@ -1,0 +1,71 @@
+@page "/"
+@inject DashboardService DashboardService
+
+<PageTitle>Tổng quan - StockDemo Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Tổng quan</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Title="Sản phẩm" Value="@_stats.ProductCount.ToString()"
+                      Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Title="Vị trí kho" Value="@_stats.LocationCount.ToString()"
+                      Icon="@Icons.Material.Filled.Place" Color="Color.Info" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Title="Tổng số lượng tồn" Value="@_stats.TotalQuantity.ToString("N0")"
+                      Icon="@Icons.Material.Filled.Warehouse" Color="Color.Success" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <StatCard Title="Cảnh báo tồn thấp" Value="@_stats.LowStockCount.ToString()"
+                      Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mt-8 mb-2">Sản phẩm dưới định mức</MudText>
+    <MudPaper Elevation="1">
+        <MudTable Items="_lowStock" Dense="true" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>Mã SP</MudTh>
+                <MudTh>Tên sản phẩm</MudTh>
+                <MudTh Style="text-align:right">Tồn hiện tại</MudTh>
+                <MudTh Style="text-align:right">Định mức tối thiểu</MudTh>
+                <MudTh Style="text-align:right">Thiếu hụt</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mã SP">@context.Product?.ProductCode</MudTd>
+                <MudTd DataLabel="Tên sản phẩm">@context.Product?.ProductName</MudTd>
+                <MudTd DataLabel="Tồn hiện tại" Style="text-align:right">@context.CurrentQuantity</MudTd>
+                <MudTd DataLabel="Định mức tối thiểu" Style="text-align:right">@context.MinQuantity</MudTd>
+                <MudTd DataLabel="Thiếu hụt" Style="text-align:right">
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">@context.Shortage</MudChip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">Không có sản phẩm nào dưới định mức. 🎉</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private DashboardStats _stats = new(0, 0, 0, 0);
+    private List<LowStockItemDto> _lowStock = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _stats = await DashboardService.GetStatsAsync();
+        var low = await DashboardService.GetLowStockAsync();
+        _lowStock = low.Data ?? new();
+        _loading = false;
+    }
+}

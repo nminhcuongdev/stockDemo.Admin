@@ -1,0 +1,104 @@
+@inject UserService UserService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="_model">
+            @if (!IsEdit)
+            {
+                <MudTextField @bind-Value="_model.Username" Label="Tên đăng nhập"
+                              Required="true" RequiredError="Tên đăng nhập là bắt buộc"
+                              Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_model.Password" Label="Mật khẩu"
+                              Required="true" RequiredError="Mật khẩu là bắt buộc"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined" Class="mb-3" />
+            }
+            <MudTextField @bind-Value="_fullName" Label="Họ tên"
+                          Required="true" RequiredError="Họ tên là bắt buộc"
+                          Variant="Variant.Outlined" Class="mb-3" />
+            <MudSelect @bind-Value="_role" Label="Vai trò" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                <MudSelectItem Value="@("Manager")">Manager</MudSelectItem>
+                <MudSelectItem Value="@("Staff")">Staff</MudSelectItem>
+            </MudSelect>
+            @if (IsEdit)
+            {
+                <MudSwitch @bind-Value="_isActive" Label="Đang hoạt động" Color="Color.Primary" />
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_saving">
+            @(_saving ? "Đang lưu..." : "Lưu")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public UserDto? Existing { get; set; }
+
+    private MudForm _form = default!;
+    private CreateUserDto _model = new();
+    private string _fullName = string.Empty;
+    private string _role = "Staff";
+    private bool _isActive = true;
+    private bool _saving;
+
+    private bool IsEdit => Existing is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is not null)
+        {
+            _fullName = Existing.FullName;
+            _role = Existing.Role;
+            _isActive = Existing.IsActive;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+
+        if (IsEdit)
+        {
+            var update = new UpdateUserDto { FullName = _fullName, Role = _role, IsActive = _isActive };
+            var result = await UserService.UpdateAsync(Existing!.UserId, update);
+            _saving = false;
+            if (result.Success)
+            {
+                Snackbar.Add("Cập nhật người dùng thành công", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Cập nhật thất bại", Severity.Error);
+            }
+        }
+        else
+        {
+            _model.FullName = _fullName;
+            _model.Role = _role;
+            var result = await UserService.CreateAsync(_model);
+            _saving = false;
+            if (result.Success)
+            {
+                Snackbar.Add("Thêm người dùng thành công", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Thêm người dùng thất bại", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,135 @@
+@page "/products"
+@inject ProductService ProductService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Sản phẩm - StockDemo Admin</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">Sản phẩm</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+        Thêm sản phẩm
+    </MudButton>
+</div>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_products" Loading="_loading" Hover="true" Striped="true"
+              Filter="Filter" @bind-SelectedItem="_selected">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm kiếm..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Mã SP</MudTh>
+            <MudTh>Tên sản phẩm</MudTh>
+            <MudTh>Đơn vị</MudTh>
+            <MudTh Style="text-align:right">Định mức min</MudTh>
+            <MudTh Style="text-align:right">Định mức max</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh Style="text-align:center">Thao tác</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mã SP">@context.ProductCode</MudTd>
+            <MudTd DataLabel="Tên sản phẩm">@context.ProductName</MudTd>
+            <MudTd DataLabel="Đơn vị">@context.Unit</MudTd>
+            <MudTd DataLabel="Định mức min" Style="text-align:right">@context.MinQuantity</MudTd>
+            <MudTd DataLabel="Định mức max" Style="text-align:right">@(context.MaxQuantity?.ToString() ?? "-")</MudTd>
+            <MudTd DataLabel="Trạng thái">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Thao tác" Style="text-align:center">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => OpenEditAsync(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => DeleteAsync(context)" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">Chưa có sản phẩm nào.</MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText Class="pa-4">Đang tải...</MudText>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ProductDto> _products = new();
+    private ProductDto? _selected;
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await ProductService.GetAllAsync();
+        if (result.Success)
+        {
+            _products = result.Data ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Không tải được danh sách sản phẩm", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private bool Filter(ProductDto p)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return p.ProductCode.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || p.ProductName.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>("Thêm sản phẩm");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditAsync(ProductDto product)
+    {
+        var parameters = new DialogParameters<Dialogs.ProductDialog> { { x => x.Existing, product } };
+        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>("Sửa sản phẩm", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ProductDto product)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Xác nhận xóa",
+            $"Xóa sản phẩm \"{product.ProductName}\"? (Sản phẩm sẽ được ngừng hoạt động)",
+            yesText: "Xóa", cancelText: "Hủy");
+
+        if (confirm == true)
+        {
+            var result = await ProductService.DeleteAsync(product.ProductId);
+            if (result.Success)
+            {
+                Snackbar.Add("Đã xóa sản phẩm", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Xóa thất bại", Severity.Error);
+            }
+        }
+    }
+}

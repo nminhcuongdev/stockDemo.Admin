@@ -1,0 +1,95 @@
+@inject LocationService LocationService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="_model">
+            <MudTextField @bind-Value="_model.LocationCode" Label="Mã vị trí"
+                          Required="true" RequiredError="Mã vị trí là bắt buộc"
+                          Disabled="IsEdit" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_model.LocationName" Label="Tên vị trí"
+                          Required="true" RequiredError="Tên vị trí là bắt buộc"
+                          Variant="Variant.Outlined" Class="mb-3" />
+            @if (IsEdit)
+            {
+                <MudSwitch @bind-Value="_isActive" Label="Đang hoạt động" Color="Color.Primary" />
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_saving">
+            @(_saving ? "Đang lưu..." : "Lưu")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public LocationDto? Existing { get; set; }
+
+    private MudForm _form = default!;
+    private CreateLocationDto _model = new();
+    private bool _isActive = true;
+    private bool _saving;
+
+    private bool IsEdit => Existing is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is not null)
+        {
+            _model = new CreateLocationDto
+            {
+                LocationCode = Existing.LocationCode,
+                LocationName = Existing.LocationName,
+            };
+            _isActive = Existing.IsActive;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+
+        if (IsEdit)
+        {
+            var update = new UpdateLocationDto
+            {
+                LocationName = _model.LocationName,
+                IsActive = _isActive,
+            };
+            var result = await LocationService.UpdateAsync(Existing!.LocationId, update);
+            _saving = false;
+            if (result.Success)
+            {
+                Snackbar.Add("Cập nhật vị trí thành công", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Cập nhật thất bại", Severity.Error);
+            }
+        }
+        else
+        {
+            var result = await LocationService.CreateAsync(_model);
+            _saving = false;
+            if (result.Success)
+            {
+                Snackbar.Add("Thêm vị trí thành công", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Thêm vị trí thất bại", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,124 @@
+@page "/locations"
+@inject LocationService LocationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Vị trí kho - StockDemo Admin</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">Vị trí kho</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
+        Thêm vị trí
+    </MudButton>
+</div>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_locations" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm kiếm..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Mã vị trí</MudTh>
+            <MudTh>Tên vị trí</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh Style="text-align:center">Thao tác</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Mã vị trí">@context.LocationCode</MudTd>
+            <MudTd DataLabel="Tên vị trí">@context.LocationName</MudTd>
+            <MudTd DataLabel="Trạng thái">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Thao tác" Style="text-align:center">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => OpenEditAsync(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => DeleteAsync(context)" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">Chưa có vị trí nào.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<LocationDto> _locations = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await LocationService.GetAllAsync();
+        if (result.Success)
+        {
+            _locations = result.Data ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Không tải được danh sách vị trí", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private bool Filter(LocationDto l)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return l.LocationCode.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || l.LocationName.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<Dialogs.LocationDialog>("Thêm vị trí");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditAsync(LocationDto location)
+    {
+        var parameters = new DialogParameters<Dialogs.LocationDialog> { { x => x.Existing, location } };
+        var dialog = await DialogService.ShowAsync<Dialogs.LocationDialog>("Sửa vị trí", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(LocationDto location)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Xác nhận xóa",
+            $"Xóa vị trí \"{location.LocationName}\"?",
+            yesText: "Xóa", cancelText: "Hủy");
+
+        if (confirm == true)
+        {
+            var result = await LocationService.DeleteAsync(location.LocationId);
+            if (result.Success)
+            {
+                Snackbar.Add("Đã xóa vị trí", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Xóa thất bại", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,12 @@
+bin/
+obj/
+out/
+.vs/
+*.user
+*.userosscache
+*.suo
+appsettings.Development.json
+appsettings.Local.json
+*.secrets.json
+.DS_Store
+Thumbs.db

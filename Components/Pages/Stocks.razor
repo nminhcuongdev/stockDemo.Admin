@@ -1,0 +1,72 @@
+@page "/stocks"
+@inject StockService StockService
+@inject ISnackbar Snackbar
+
+<PageTitle>Tồn kho - StockDemo Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Tồn kho</MudText>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_stocks" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm theo sản phẩm / vị trí / QR..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Sản phẩm</MudTh>
+            <MudTh>Vị trí</MudTh>
+            <MudTh Style="text-align:right">Số lượng</MudTh>
+            <MudTh>QR Code</MudTh>
+            <MudTh>Cập nhật lần cuối</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Sản phẩm">
+                <MudText Typo="Typo.body2">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Product?.ProductCode</MudText>
+            </MudTd>
+            <MudTd DataLabel="Vị trí">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
+            <MudTd DataLabel="Số lượng" Style="text-align:right">
+                <MudText Typo="Typo.body1"><b>@context.Quantity</b></MudText>
+            </MudTd>
+            <MudTd DataLabel="QR Code">@context.QRCode</MudTd>
+            <MudTd DataLabel="Cập nhật lần cuối">@context.LastUpdated.ToString("dd/MM/yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">Chưa có dữ liệu tồn kho.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<StockDto> _stocks = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await StockService.GetAllAsync();
+        if (result.Success)
+        {
+            _stocks = result.Data ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Không tải được dữ liệu tồn kho", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private bool Filter(StockDto s)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var q = _search.Trim();
+        return (s.Product?.ProductName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.Product?.ProductCode?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.Location?.LocationName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.QRCode?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+}

@@ -1,0 +1,101 @@
+@page "/login"
+@layout Layout.EmptyLayout
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Đăng nhập - StockDemo Admin</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <div class="d-flex justify-center" style="min-height: 90vh; align-items: center;">
+        <MudPaper Class="pa-8" Elevation="6" Style="width: 100%; max-width: 420px;">
+            <div class="d-flex flex-column align-center mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Warehouse" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5" Class="mt-2">StockDemo Admin</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Quản trị dữ liệu kho</MudText>
+            </div>
+
+            <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_model.Username"
+                              For="@(() => _model.Username)"
+                              Label="Tên đăng nhập"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              Class="mb-3" />
+
+                <MudTextField @bind-Value="_model.Password"
+                              For="@(() => _model.Password)"
+                              Label="Mật khẩu"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              Class="mb-3" />
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-3" Dense="true">@_error</MudAlert>
+                }
+
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           Disabled="_loading">
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                        <span>Đang đăng nhập...</span>
+                    }
+                    else
+                    {
+                        <span>Đăng nhập</span>
+                    }
+                </MudButton>
+            </EditForm>
+        </MudPaper>
+    </div>
+</MudContainer>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private readonly LoginRequest _model = new();
+    private bool _loading;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Already signed in? Skip the login form.
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        var (success, error) = await AuthService.LoginAsync(_model);
+
+        _loading = false;
+
+        if (success)
+        {
+            var target = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : Uri.UnescapeDataString(ReturnUrl);
+            Navigation.NavigateTo(target);
+        }
+        else
+        {
+            _error = error;
+        }
+    }
+}

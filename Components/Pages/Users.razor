@@ -1,0 +1,140 @@
+@page "/users"
+@inject UserService UserService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Người dùng - StockDemo Admin</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">Người dùng</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateAsync">
+        Thêm người dùng
+    </MudButton>
+</div>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_users" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Tìm kiếm..." Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Tên đăng nhập</MudTh>
+            <MudTh>Họ tên</MudTh>
+            <MudTh>Vai trò</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh>Đăng nhập lần cuối</MudTh>
+            <MudTh Style="text-align:center">Thao tác</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Tên đăng nhập">@context.Username</MudTd>
+            <MudTd DataLabel="Họ tên">@context.FullName</MudTd>
+            <MudTd DataLabel="Vai trò">
+                <MudChip T="string" Size="Size.Small" Color="@RoleColor(context.Role)">@context.Role</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Trạng thái">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Đăng nhập lần cuối">
+                @(context.LastLoginDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+            </MudTd>
+            <MudTd DataLabel="Thao tác" Style="text-align:center">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => OpenEditAsync(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => DeleteAsync(context)" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">Chưa có người dùng nào.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<UserDto> _users = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await UserService.GetAllAsync();
+        if (result.Success)
+        {
+            _users = result.Data ?? new();
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? "Không tải được danh sách người dùng", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private static Color RoleColor(string role) => role switch
+    {
+        "Admin" => Color.Error,
+        "Manager" => Color.Warning,
+        _ => Color.Info,
+    };
+
+    private bool Filter(UserDto u)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var s = _search.Trim();
+        return u.Username.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || u.FullName.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || u.Role.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>("Thêm người dùng");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenEditAsync(UserDto user)
+    {
+        var parameters = new DialogParameters<Dialogs.UserDialog> { { x => x.Existing, user } };
+        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>("Sửa người dùng", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(UserDto user)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Xác nhận xóa",
+            $"Vô hiệu hóa người dùng \"{user.Username}\"?",
+            yesText: "Xóa", cancelText: "Hủy");
+
+        if (confirm == true)
+        {
+            var result = await UserService.DeleteAsync(user.UserId);
+            if (result.Success)
+            {
+                Snackbar.Add("Đã vô hiệu hóa người dùng", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Xóa thất bại", Severity.Error);
+            }
+        }
+    }
+}
