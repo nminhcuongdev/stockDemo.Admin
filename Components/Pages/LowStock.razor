@@ -1,40 +1,35 @@
 @page "/low-stock"
+@inherits LocalizedComponentBase
 @inject DashboardService DashboardService
 @inject ISnackbar Snackbar
 
-<PageTitle>Cảnh báo tồn thấp - StockDemo Admin</PageTitle>
+<PageTitle>@L["lowStock.title"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Cảnh báo tồn thấp</MudText>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-    Danh sách sản phẩm có tổng tồn kho dưới định mức tối thiểu.
-</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["lowStock.title"]</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">@L["lowStock.subtitle"]</MudText>
 
 <MudPaper Elevation="1">
     <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true">
         <HeaderContent>
-            <MudTh>Mã SP</MudTh>
-            <MudTh>Tên sản phẩm</MudTh>
-            <MudTh>Đơn vị</MudTh>
-            <MudTh Style="text-align:right">Tồn hiện tại</MudTh>
-            <MudTh Style="text-align:right">Định mức tối thiểu</MudTh>
-            <MudTh Style="text-align:right">Thiếu hụt</MudTh>
+            <MudTh>@L["products.codeShort"]</MudTh>
+            <MudTh>@L["products.name"]</MudTh>
+            <MudTh>@L["products.unitShort"]</MudTh>
+            <MudTh Style="text-align:right">@L["lowStock.current"]</MudTh>
+            <MudTh Style="text-align:right">@L["lowStock.min"]</MudTh>
+            <MudTh Style="text-align:right">@L["lowStock.shortage"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Mã SP">@context.Product?.ProductCode</MudTd>
-            <MudTd DataLabel="Tên sản phẩm">@context.Product?.ProductName</MudTd>
-            <MudTd DataLabel="Đơn vị">@context.Product?.Unit</MudTd>
-            <MudTd DataLabel="Tồn hiện tại" Style="text-align:right">@context.CurrentQuantity</MudTd>
-            <MudTd DataLabel="Định mức tối thiểu" Style="text-align:right">@context.MinQuantity</MudTd>
-            <MudTd DataLabel="Thiếu hụt" Style="text-align:right">
+            <MudTd DataLabel="@L["products.codeShort"]">@context.Product?.ProductCode</MudTd>
+            <MudTd DataLabel="@L["products.name"]">@context.Product?.ProductName</MudTd>
+            <MudTd DataLabel="@L["products.unitShort"]">@context.Product?.Unit</MudTd>
+            <MudTd DataLabel="@L["lowStock.current"]" Style="text-align:right">@context.CurrentQuantity</MudTd>
+            <MudTd DataLabel="@L["lowStock.min"]" Style="text-align:right">@context.MinQuantity</MudTd>
+            <MudTd DataLabel="@L["lowStock.shortage"]" Style="text-align:right">
                 <MudChip T="string" Color="Color.Error" Size="Size.Small">@context.Shortage</MudChip>
             </MudTd>
         </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">Không có sản phẩm nào dưới định mức. 🎉</MudText>
-        </NoRecordsContent>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["dashboard.noLowStock"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -45,14 +40,8 @@
     protected override async Task OnInitializedAsync()
     {
         var result = await DashboardService.GetLowStockAsync();
-        if (result.Success)
-        {
-            _items = result.Data ?? new();
-        }
-        else
-        {
-            Snackbar.Add(result.Message ?? "Không tải được cảnh báo tồn thấp", Severity.Error);
-        }
+        if (result.Success) _items = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 }

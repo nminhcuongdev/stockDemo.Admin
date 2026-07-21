@@ -1,15 +1,16 @@
 @page "/products"
+@inherits LocalizedComponentBase
 @inject ProductService ProductService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<PageTitle>Sản phẩm - StockDemo Admin</PageTitle>
+<PageTitle>@L["products.title"] - StockDemo Admin</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4">Sản phẩm</MudText>
+    <MudText Typo="Typo.h4">@L["products.title"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateAsync">
-        Thêm sản phẩm
+        @L["products.add"]
     </MudButton>
 </div>
 
@@ -17,36 +18,36 @@
     <MudTable Items="_products" Loading="_loading" Hover="true" Striped="true"
               Filter="Filter" @bind-SelectedItem="_selected">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm kiếm..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["common.search"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Mã SP</MudTh>
-            <MudTh>Tên sản phẩm</MudTh>
-            <MudTh>Đơn vị</MudTh>
-            <MudTh Style="text-align:right">Định mức min</MudTh>
-            <MudTh Style="text-align:right">Định mức max</MudTh>
-            <MudTh>Trạng thái</MudTh>
-            <MudTh Style="text-align:center">Thao tác</MudTh>
+            <MudTh>@L["products.codeShort"]</MudTh>
+            <MudTh>@L["products.name"]</MudTh>
+            <MudTh>@L["products.unitShort"]</MudTh>
+            <MudTh Style="text-align:right">@L["products.minShort"]</MudTh>
+            <MudTh Style="text-align:right">@L["products.maxShort"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align:center">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Mã SP">@context.ProductCode</MudTd>
-            <MudTd DataLabel="Tên sản phẩm">@context.ProductName</MudTd>
-            <MudTd DataLabel="Đơn vị">@context.Unit</MudTd>
-            <MudTd DataLabel="Định mức min" Style="text-align:right">@context.MinQuantity</MudTd>
-            <MudTd DataLabel="Định mức max" Style="text-align:right">@(context.MaxQuantity?.ToString() ?? "-")</MudTd>
-            <MudTd DataLabel="Trạng thái">
+            <MudTd DataLabel="@L["products.codeShort"]">@context.ProductCode</MudTd>
+            <MudTd DataLabel="@L["products.name"]">@context.ProductName</MudTd>
+            <MudTd DataLabel="@L["products.unitShort"]">@context.Unit</MudTd>
+            <MudTd DataLabel="@L["products.minShort"]" Style="text-align:right">@context.MinQuantity</MudTd>
+            <MudTd DataLabel="@L["products.maxShort"]" Style="text-align:right">@(context.MaxQuantity?.ToString() ?? "-")</MudTd>
+            <MudTd DataLabel="@L["common.status"]">
                 @if (context.IsActive)
                 {
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@L["common.active"]</MudChip>
                 }
                 else
                 {
-                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">@L["common.inactive"]</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Thao tác" Style="text-align:center">
+            <MudTd DataLabel="@L["common.actions"]" Style="text-align:center">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
                                OnClick="() => OpenEditAsync(context)" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
@@ -54,13 +55,13 @@
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <MudText Class="pa-4">Chưa có sản phẩm nào.</MudText>
+            <MudText Class="pa-4">@L["products.none"]</MudText>
         </NoRecordsContent>
         <LoadingContent>
-            <MudText Class="pa-4">Đang tải...</MudText>
+            <MudText Class="pa-4">@L["common.loading"]</MudText>
         </LoadingContent>
         <PagerContent>
-            <MudTablePager />
+            <MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" />
         </PagerContent>
     </MudTable>
 </MudPaper>
@@ -83,7 +84,7 @@
         }
         else
         {
-            Snackbar.Add(result.Message ?? "Không tải được danh sách sản phẩm", Severity.Error);
+            Snackbar.Add(result.Message ?? "Error", Severity.Error);
         }
         _loading = false;
     }
@@ -98,7 +99,7 @@
 
     private async Task OpenCreateAsync()
     {
-        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>("Thêm sản phẩm");
+        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>(L["products.add"]);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadAsync();
     }
@@ -106,7 +107,7 @@
     private async Task OpenEditAsync(ProductDto product)
     {
         var parameters = new DialogParameters<Dialogs.ProductDialog> { { x => x.Existing, product } };
-        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>("Sửa sản phẩm", parameters);
+        var dialog = await DialogService.ShowAsync<Dialogs.ProductDialog>(L["products.edit"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadAsync();
     }
@@ -114,21 +115,21 @@
     private async Task DeleteAsync(ProductDto product)
     {
         var confirm = await DialogService.ShowMessageBoxAsync(
-            "Xác nhận xóa",
-            $"Xóa sản phẩm \"{product.ProductName}\"? (Sản phẩm sẽ được ngừng hoạt động)",
-            yesText: "Xóa", cancelText: "Hủy");
+            L["common.confirmDeleteTitle"],
+            $"{L["products.confirmDelete"]} — {product.ProductName}",
+            yesText: L["common.delete"], cancelText: L["common.cancel"]);
 
         if (confirm == true)
         {
             var result = await ProductService.DeleteAsync(product.ProductId);
             if (result.Success)
             {
-                Snackbar.Add("Đã xóa sản phẩm", Severity.Success);
+                Snackbar.Add(L["common.delete"], Severity.Success);
                 await LoadAsync();
             }
             else
             {
-                Snackbar.Add(result.Message ?? "Xóa thất bại", Severity.Error);
+                Snackbar.Add(result.Message ?? "Error", Severity.Error);
             }
         }
     }

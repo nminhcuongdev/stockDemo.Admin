@@ -1,17 +1,18 @@
 @page "/reports"
+@inherits LocalizedComponentBase
 @inject ReportService ReportService
 @inject ISnackbar Snackbar
 
-<PageTitle>Báo cáo tồn kho - StockDemo Admin</PageTitle>
+<PageTitle>@L["nav.reports"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Báo cáo biến động tồn kho</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["reports.title"]</MudText>
 
 <MudPaper Elevation="1" Class="pa-4 mb-4">
     <div class="d-flex align-center flex-wrap gap-4">
-        <MudDateRangePicker @bind-DateRange="_range" Label="Khoảng thời gian" Variant="Variant.Outlined"
+        <MudDateRangePicker @bind-DateRange="_range" Label="@L["common.dateRange"]" Variant="Variant.Outlined"
                             Style="max-width: 360px;" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
-                   OnClick="LoadAsync" Disabled="_loading">Xem báo cáo</MudButton>
+                   OnClick="LoadAsync" Disabled="_loading">@L["reports.view"]</MudButton>
     </div>
 </MudPaper>
 
@@ -23,15 +24,15 @@ else if (_report is not null)
 {
     <MudGrid Class="mb-4">
         <MudItem xs="12" sm="4">
-            <StatCard Title="Tổng nhập" Value="@_report.TotalIn.ToString("N0")"
+            <StatCard Title="@L["reports.totalIn"]" Value="@_report.TotalIn.ToString("N0")"
                       Icon="@Icons.Material.Filled.Login" Color="Color.Success" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <StatCard Title="Tổng xuất" Value="@_report.TotalOut.ToString("N0")"
+            <StatCard Title="@L["reports.totalOut"]" Value="@_report.TotalOut.ToString("N0")"
                       Icon="@Icons.Material.Filled.Logout" Color="Color.Error" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <StatCard Title="Tồn hiện tại" Value="@_report.TotalStock.ToString("N0")"
+            <StatCard Title="@L["reports.currentStock"]" Value="@_report.TotalStock.ToString("N0")"
                       Icon="@Icons.Material.Filled.Warehouse" Color="Color.Primary" />
         </MudItem>
     </MudGrid>
@@ -40,16 +41,16 @@ else if (_report is not null)
     {
         <MudPaper Elevation="1" Class="pa-4 mb-4">
             <div class="d-flex align-center mb-3" style="gap: 16px;">
-                <MudText Typo="Typo.h6">Nhập / Xuất theo sản phẩm</MudText>
-                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Nhập</MudChip>
-                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Xuất</MudChip>
+                <MudText Typo="Typo.h6">@L["reports.byProduct"]</MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@L["reports.in"]</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">@L["reports.out"]</MudChip>
             </div>
             @foreach (var row in _chart)
             {
                 <div class="mb-3">
                     <div class="d-flex justify-space-between">
                         <MudText Typo="Typo.body2"><b>@row.Label</b></MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nhập @row.In · Xuất @row.Out</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["reports.in"] @row.In · @L["reports.out"] @row.Out</MudText>
                     </div>
                     <div style="height:10px;background:var(--mud-palette-success);border-radius:4px;width:@(Pct(row.In))%;min-width:2px;"></div>
                     <div style="height:10px;background:var(--mud-palette-error);border-radius:4px;width:@(Pct(row.Out))%;min-width:2px;margin-top:3px;"></div>
@@ -61,20 +62,20 @@ else if (_report is not null)
     <MudPaper Elevation="1">
         <MudTable Items="_report.Items" Hover="true" Striped="true" Dense="true">
             <HeaderContent>
-                <MudTh>Mã SP</MudTh>
-                <MudTh>Tên sản phẩm</MudTh>
-                <MudTh Style="text-align:right">Nhập</MudTh>
-                <MudTh Style="text-align:right">Xuất</MudTh>
-                <MudTh Style="text-align:right">Tồn hiện tại</MudTh>
+                <MudTh>@L["products.codeShort"]</MudTh>
+                <MudTh>@L["products.name"]</MudTh>
+                <MudTh Style="text-align:right">@L["reports.in"]</MudTh>
+                <MudTh Style="text-align:right">@L["reports.out"]</MudTh>
+                <MudTh Style="text-align:right">@L["reports.currentStock"]</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Mã SP">@context.Product?.ProductCode</MudTd>
-                <MudTd DataLabel="Tên sản phẩm">@context.Product?.ProductName</MudTd>
-                <MudTd DataLabel="Nhập" Style="text-align:right; color: var(--mud-palette-success)">+@context.TotalIn</MudTd>
-                <MudTd DataLabel="Xuất" Style="text-align:right; color: var(--mud-palette-error)">-@context.TotalOut</MudTd>
-                <MudTd DataLabel="Tồn hiện tại" Style="text-align:right"><b>@context.CurrentStock</b></MudTd>
+                <MudTd DataLabel="@L["products.codeShort"]">@context.Product?.ProductCode</MudTd>
+                <MudTd DataLabel="@L["products.name"]">@context.Product?.ProductName</MudTd>
+                <MudTd DataLabel="@L["reports.in"]" Style="text-align:right; color: var(--mud-palette-success)">+@context.TotalIn</MudTd>
+                <MudTd DataLabel="@L["reports.out"]" Style="text-align:right; color: var(--mud-palette-error)">-@context.TotalOut</MudTd>
+                <MudTd DataLabel="@L["reports.currentStock"]" Style="text-align:right"><b>@context.CurrentStock</b></MudTd>
             </RowTemplate>
-            <NoRecordsContent><MudText Class="pa-4">Không có biến động trong khoảng thời gian này.</MudText></NoRecordsContent>
+            <NoRecordsContent><MudText Class="pa-4">@L["reports.none"]</MudText></NoRecordsContent>
         </MudTable>
     </MudPaper>
 }

@@ -1,41 +1,42 @@
 @page "/stock-outs"
+@inherits LocalizedComponentBase
 @inject MovementService MovementService
 @inject ISnackbar Snackbar
 
-<PageTitle>Xuất kho - StockDemo Admin</PageTitle>
+<PageTitle>@L["nav.stockOuts"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Lịch sử xuất kho</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["stockOuts.title"]</MudText>
 
 <MudPaper Elevation="1">
     <MudTable Items="Filtered" Loading="_loading" Hover="true" Striped="true">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm sản phẩm / mã / vị trí..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["movements.searchHint"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
             <MudSpacer />
-            <MudDateRangePicker @bind-DateRange="_range" Label="Khoảng thời gian" Clearable="true"
+            <MudDateRangePicker @bind-DateRange="_range" Label="@L["common.dateRange"]" Clearable="true"
                                 Class="mt-0" Style="max-width: 320px;" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Mã phiếu</MudTh>
-            <MudTh>Sản phẩm</MudTh>
-            <MudTh>Vị trí</MudTh>
-            <MudTh Style="text-align:right">Số lượng</MudTh>
-            <MudTh>Người tạo</MudTh>
-            <MudTh>Ngày</MudTh>
+            <MudTh>@L["movements.code"]</MudTh>
+            <MudTh>@L["common.product"]</MudTh>
+            <MudTh>@L["common.location"]</MudTh>
+            <MudTh Style="text-align:right">@L["common.quantity"]</MudTh>
+            <MudTh>@L["common.createdBy"]</MudTh>
+            <MudTh>@L["common.date"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Mã phiếu">@context.StockOutCode</MudTd>
-            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
-            <MudTd DataLabel="Vị trí">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
-            <MudTd DataLabel="Số lượng" Style="text-align:right">
+            <MudTd DataLabel="@L["movements.code"]">@context.StockOutCode</MudTd>
+            <MudTd DataLabel="@L["common.product"]">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="@L["common.location"]">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
+            <MudTd DataLabel="@L["common.quantity"]" Style="text-align:right">
                 <MudChip T="string" Color="Color.Error" Size="Size.Small">-@context.Quantity</MudChip>
             </MudTd>
-            <MudTd DataLabel="Người tạo">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
-            <MudTd DataLabel="Ngày">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="@L["common.createdBy"]">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
+            <MudTd DataLabel="@L["common.date"]">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
         </RowTemplate>
-        <NoRecordsContent><MudText Class="pa-4">Không có phiếu xuất nào.</MudText></NoRecordsContent>
-        <PagerContent><MudTablePager /></PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["stockOuts.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -49,7 +50,7 @@
     {
         var result = await MovementService.GetStockOutsAsync();
         if (result.Success) _items = result.Data ?? new();
-        else Snackbar.Add(result.Message ?? "Không tải được lịch sử xuất kho", Severity.Error);
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 

@@ -1,8 +1,19 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject LocalizationService L
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudSnackbarProvider />
+
+<div style="position: fixed; top: 12px; right: 16px; z-index: 10;">
+    <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+        <MudButton Color="@(L.Culture == "vi" ? Color.Primary : Color.Default)"
+                   OnClick="@(() => SetCulture("vi"))">VI</MudButton>
+        <MudButton Color="@(L.Culture == "en" ? Color.Primary : Color.Default)"
+                   OnClick="@(() => SetCulture("en"))">EN</MudButton>
+    </MudButtonGroup>
+</div>
 
 @Body
 
@@ -11,3 +22,17 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        L.OnChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task SetCulture(string culture) => await L.SetCultureAsync(culture);
+
+    public void Dispose() => L.OnChanged -= OnLanguageChanged;
+}

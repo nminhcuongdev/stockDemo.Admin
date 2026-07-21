@@ -21,6 +21,7 @@ builder.Services.AddHttpClient("StockDemoApi", client =>
 
 // Auth: session-backed JWT + a custom AuthenticationStateProvider.
 builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();

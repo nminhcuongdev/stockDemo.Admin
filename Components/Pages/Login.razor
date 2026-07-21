@@ -1,10 +1,11 @@
 @page "/login"
 @layout Layout.EmptyLayout
+@inherits LocalizedComponentBase
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Đăng nhập - StockDemo Admin</PageTitle>
+<PageTitle>@L["login.signIn"] - StockDemo Admin</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small">
     <div class="d-flex justify-center" style="min-height: 90vh; align-items: center;">
@@ -12,7 +13,7 @@
             <div class="d-flex flex-column align-center mb-4">
                 <MudIcon Icon="@Icons.Material.Filled.Warehouse" Color="Color.Primary" Size="Size.Large" />
                 <MudText Typo="Typo.h5" Class="mt-2">StockDemo Admin</MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">Quản trị dữ liệu kho</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@L["login.subtitle"]</MudText>
             </div>
 
             <EditForm Model="_model" OnValidSubmit="SubmitAsync">
@@ -20,7 +21,7 @@
 
                 <MudTextField @bind-Value="_model.Username"
                               For="@(() => _model.Username)"
-                              Label="Tên đăng nhập"
+                              Label="@L["login.username"]"
                               Variant="Variant.Outlined"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Person"
@@ -28,7 +29,7 @@
 
                 <MudTextField @bind-Value="_model.Password"
                               For="@(() => _model.Password)"
-                              Label="Mật khẩu"
+                              Label="@L["login.password"]"
                               Variant="Variant.Outlined"
                               InputType="InputType.Password"
                               Adornment="Adornment.Start"
@@ -49,11 +50,11 @@
                     @if (_loading)
                     {
                         <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
-                        <span>Đang đăng nhập...</span>
+                        <span>@L["login.signingIn"]</span>
                     }
                     else
                     {
-                        <span>Đăng nhập</span>
+                        <span>@L["login.signIn"]</span>
                     }
                 </MudButton>
             </EditForm>

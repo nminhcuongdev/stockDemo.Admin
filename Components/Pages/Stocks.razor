@@ -1,43 +1,40 @@
 @page "/stocks"
+@inherits LocalizedComponentBase
 @inject StockService StockService
 @inject ISnackbar Snackbar
 
-<PageTitle>Tồn kho - StockDemo Admin</PageTitle>
+<PageTitle>@L["stocks.title"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Tồn kho</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["stocks.title"]</MudText>
 
 <MudPaper Elevation="1">
     <MudTable Items="_stocks" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm theo sản phẩm / vị trí / QR..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["stocks.searchHint"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Sản phẩm</MudTh>
-            <MudTh>Vị trí</MudTh>
-            <MudTh Style="text-align:right">Số lượng</MudTh>
-            <MudTh>QR Code</MudTh>
-            <MudTh>Cập nhật lần cuối</MudTh>
+            <MudTh>@L["common.product"]</MudTh>
+            <MudTh>@L["common.location"]</MudTh>
+            <MudTh Style="text-align:right">@L["common.quantity"]</MudTh>
+            <MudTh>@L["stocks.qrCode"]</MudTh>
+            <MudTh>@L["stocks.lastUpdated"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Sản phẩm">
+            <MudTd DataLabel="@L["common.product"]">
                 <MudText Typo="Typo.body2">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Product?.ProductCode</MudText>
             </MudTd>
-            <MudTd DataLabel="Vị trí">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
-            <MudTd DataLabel="Số lượng" Style="text-align:right">
+            <MudTd DataLabel="@L["common.location"]">@(context.Location?.LocationName ?? $"#{context.LocationId}")</MudTd>
+            <MudTd DataLabel="@L["common.quantity"]" Style="text-align:right">
                 <MudText Typo="Typo.body1"><b>@context.Quantity</b></MudText>
             </MudTd>
-            <MudTd DataLabel="QR Code">@context.QRCode</MudTd>
-            <MudTd DataLabel="Cập nhật lần cuối">@context.LastUpdated.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="@L["stocks.qrCode"]">@context.QRCode</MudTd>
+            <MudTd DataLabel="@L["stocks.lastUpdated"]">@context.LastUpdated.ToString("dd/MM/yyyy HH:mm")</MudTd>
         </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">Chưa có dữ liệu tồn kho.</MudText>
-        </NoRecordsContent>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["stocks.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -49,14 +46,8 @@
     protected override async Task OnInitializedAsync()
     {
         var result = await StockService.GetAllAsync();
-        if (result.Success)
-        {
-            _stocks = result.Data ?? new();
-        }
-        else
-        {
-            Snackbar.Add(result.Message ?? "Không tải được dữ liệu tồn kho", Severity.Error);
-        }
+        if (result.Success) _stocks = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 

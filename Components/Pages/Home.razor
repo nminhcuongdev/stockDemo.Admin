@@ -1,9 +1,10 @@
 @page "/"
+@inherits LocalizedComponentBase
 @inject DashboardService DashboardService
 
-<PageTitle>Tổng quan - StockDemo Admin</PageTitle>
+<PageTitle>@L["dashboard.title"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Tổng quan</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["dashboard.title"]</MudText>
 
 @if (_loading)
 {
@@ -13,32 +14,32 @@ else
 {
     <MudGrid>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Title="Sản phẩm" Value="@_stats.ProductCount.ToString()"
+            <StatCard Title="@L["dashboard.products"]" Value="@_stats.ProductCount.ToString()"
                       Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Title="Vị trí kho" Value="@_stats.LocationCount.ToString()"
+            <StatCard Title="@L["dashboard.locations"]" Value="@_stats.LocationCount.ToString()"
                       Icon="@Icons.Material.Filled.Place" Color="Color.Info" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Title="Tổng số lượng tồn" Value="@_stats.TotalQuantity.ToString("N0")"
+            <StatCard Title="@L["dashboard.totalQty"]" Value="@_stats.TotalQuantity.ToString("N0")"
                       Icon="@Icons.Material.Filled.Warehouse" Color="Color.Success" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <StatCard Title="Cảnh báo tồn thấp" Value="@_stats.LowStockCount.ToString()"
+            <StatCard Title="@L["dashboard.lowStockCount"]" Value="@_stats.LowStockCount.ToString()"
                       Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
         </MudItem>
     </MudGrid>
 
-    <MudText Typo="Typo.h6" Class="mt-8 mb-2">Sản phẩm dưới định mức</MudText>
+    <MudText Typo="Typo.h6" Class="mt-8 mb-2">@L["dashboard.belowMin"]</MudText>
     <MudPaper Elevation="1">
         <MudTable Items="_lowStock" Dense="true" Hover="true" Striped="true">
             <HeaderContent>
-                <MudTh>Mã SP</MudTh>
-                <MudTh>Tên sản phẩm</MudTh>
-                <MudTh Style="text-align:right">Tồn hiện tại</MudTh>
-                <MudTh Style="text-align:right">Định mức tối thiểu</MudTh>
-                <MudTh Style="text-align:right">Thiếu hụt</MudTh>
+                <MudTh>@L["products.codeShort"]</MudTh>
+                <MudTh>@L["products.name"]</MudTh>
+                <MudTh Style="text-align:right">@L["lowStock.current"]</MudTh>
+                <MudTh Style="text-align:right">@L["lowStock.min"]</MudTh>
+                <MudTh Style="text-align:right">@L["lowStock.shortage"]</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Mã SP">@context.Product?.ProductCode</MudTd>
@@ -50,7 +51,7 @@ else
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <MudText Class="pa-4">Không có sản phẩm nào dưới định mức. 🎉</MudText>
+                <MudText Class="pa-4">@L["dashboard.noLowStock"]</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>

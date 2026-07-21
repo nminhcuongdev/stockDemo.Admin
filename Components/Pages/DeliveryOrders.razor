@@ -1,36 +1,37 @@
 @page "/delivery-orders"
+@inherits LocalizedComponentBase
 @inject DeliveryOrderService DeliveryOrderService
 @inject ISnackbar Snackbar
 
-<PageTitle>Đơn giao hàng - StockDemo Admin</PageTitle>
+<PageTitle>@L["delivery.title"] - StockDemo Admin</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Đơn giao hàng</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">@L["delivery.title"]</MudText>
 
 <MudPaper Elevation="1">
     <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm PO / sản phẩm..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["delivery.searchHint"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Số PO</MudTh>
-            <MudTh>Sản phẩm</MudTh>
-            <MudTh Style="text-align:right">Số lượng</MudTh>
-            <MudTh>Ngày giao</MudTh>
-            <MudTh>Trạng thái</MudTh>
+            <MudTh>@L["delivery.poNumber"]</MudTh>
+            <MudTh>@L["common.product"]</MudTh>
+            <MudTh Style="text-align:right">@L["common.quantity"]</MudTh>
+            <MudTh>@L["delivery.deliveryDate"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Số PO">@context.PONumber</MudTd>
-            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
-            <MudTd DataLabel="Số lượng" Style="text-align:right">@context.Quantity</MudTd>
-            <MudTd DataLabel="Ngày giao">@context.DeliveryDate.ToString("dd/MM/yyyy")</MudTd>
-            <MudTd DataLabel="Trạng thái">
+            <MudTd DataLabel="@L["delivery.poNumber"]">@context.PONumber</MudTd>
+            <MudTd DataLabel="@L["common.product"]">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="@L["common.quantity"]" Style="text-align:right">@context.Quantity</MudTd>
+            <MudTd DataLabel="@L["delivery.deliveryDate"]">@context.DeliveryDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="@L["common.status"]">
                 <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip>
             </MudTd>
         </RowTemplate>
-        <NoRecordsContent><MudText Class="pa-4">Chưa có đơn giao hàng nào.</MudText></NoRecordsContent>
-        <PagerContent><MudTablePager /></PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["delivery.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -43,7 +44,7 @@
     {
         var result = await DeliveryOrderService.GetAllAsync();
         if (result.Success) _items = result.Data ?? new();
-        else Snackbar.Add(result.Message ?? "Không tải được đơn giao hàng", Severity.Error);
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 

@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject LocalizationService L
 
 <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -13,8 +15,20 @@
             <MudAppBar Elevation="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                                OnClick="ToggleDrawer" />
-                <MudText Typo="Typo.h6" Class="ml-2">StockDemo Admin</MudText>
+                <MudText Typo="Typo.h6" Class="ml-2">@L["app.title"]</MudText>
                 <MudSpacer />
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Text" Color="Color.Inherit"
+                                   StartIcon="@Icons.Material.Filled.Translate">
+                            @(L.Culture == "en" ? "EN" : "VI")
+                        </MudButton>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem OnClick="@(() => SetCulture("vi"))">🇻🇳 Tiếng Việt</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => SetCulture("en"))">🇬🇧 English</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
                 <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                Color="Color.Inherit" OnClick="() => _isDarkMode = !_isDarkMode" />
                 <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
@@ -24,7 +38,7 @@
                         </MudChip>
                     </ActivatorContent>
                     <ChildContent>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">Đăng xuất</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">@L["app.logout"]</MudMenuItem>
                     </ChildContent>
                 </MudMenu>
             </MudAppBar>
@@ -59,7 +73,17 @@
     private bool _isDarkMode;
     private readonly MudTheme _theme = new();
 
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        L.OnChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task SetCulture(string culture) => await L.SetCultureAsync(culture);
 
     private static string GetRole(AuthenticationState context) =>
         context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
@@ -69,4 +93,6 @@
         await AuthService.LogoutAsync();
         Navigation.NavigateTo("/login", forceLoad: false);
     }
+
+    public void Dispose() => L.OnChanged -= OnLanguageChanged;
 }

@@ -1,22 +1,24 @@
+@inherits LocalizedComponentBase
+
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tổng quan</MudNavLink>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">@L["nav.dashboard"]</MudNavLink>
 
-    <MudNavGroup Title="Danh mục" Icon="@Icons.Material.Filled.Category" Expanded="true">
-        <MudNavLink Href="/products" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">Sản phẩm</MudNavLink>
-        <MudNavLink Href="/locations" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Place">Vị trí kho</MudNavLink>
+    <MudNavGroup Title="@L["nav.catalog"]" Icon="@Icons.Material.Filled.Category" Expanded="true">
+        <MudNavLink Href="/products" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">@L["nav.products"]</MudNavLink>
+        <MudNavLink Href="/locations" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Place">@L["nav.locations"]</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Kho vận" Icon="@Icons.Material.Filled.Warehouse" Expanded="true">
-        <MudNavLink Href="/stocks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Warehouse">Tồn kho</MudNavLink>
-        <MudNavLink Href="/stock-ins" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">Nhập kho</MudNavLink>
-        <MudNavLink Href="/stock-outs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Logout">Xuất kho</MudNavLink>
-        <MudNavLink Href="/transfers" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.SwapHoriz">Điều chuyển</MudNavLink>
-        <MudNavLink Href="/delivery-orders" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocalShipping">Đơn giao hàng</MudNavLink>
-        <MudNavLink Href="/low-stock" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Warning">Cảnh báo tồn thấp</MudNavLink>
+    <MudNavGroup Title="@L["nav.warehouse"]" Icon="@Icons.Material.Filled.Warehouse" Expanded="true">
+        <MudNavLink Href="/stocks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Warehouse">@L["nav.stocks"]</MudNavLink>
+        <MudNavLink Href="/stock-ins" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">@L["nav.stockIns"]</MudNavLink>
+        <MudNavLink Href="/stock-outs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Logout">@L["nav.stockOuts"]</MudNavLink>
+        <MudNavLink Href="/transfers" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.SwapHoriz">@L["nav.transfers"]</MudNavLink>
+        <MudNavLink Href="/delivery-orders" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocalShipping">@L["nav.deliveryOrders"]</MudNavLink>
+        <MudNavLink Href="/low-stock" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Warning">@L["nav.lowStock"]</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Báo cáo & Hệ thống" Icon="@Icons.Material.Filled.Assessment" Expanded="true">
-        <MudNavLink Href="/reports" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.BarChart">Báo cáo tồn kho</MudNavLink>
-        <MudNavLink Href="/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">Người dùng</MudNavLink>
+    <MudNavGroup Title="@L["nav.reportsSystem"]" Icon="@Icons.Material.Filled.Assessment" Expanded="true">
+        <MudNavLink Href="/reports" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.BarChart">@L["nav.reports"]</MudNavLink>
+        <MudNavLink Href="/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">@L["nav.users"]</MudNavLink>
     </MudNavGroup>
 </MudNavMenu>

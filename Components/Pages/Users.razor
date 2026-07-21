@@ -1,65 +1,62 @@
 @page "/users"
+@inherits LocalizedComponentBase
 @inject UserService UserService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<PageTitle>Người dùng - StockDemo Admin</PageTitle>
+<PageTitle>@L["users.title"] - StockDemo Admin</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4">Người dùng</MudText>
+    <MudText Typo="Typo.h4">@L["users.title"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenCreateAsync">
-        Thêm người dùng
+        @L["users.add"]
     </MudButton>
 </div>
 
 <MudPaper Elevation="1">
     <MudTable Items="_users" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm kiếm..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["common.search"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Tên đăng nhập</MudTh>
-            <MudTh>Họ tên</MudTh>
-            <MudTh>Vai trò</MudTh>
-            <MudTh>Trạng thái</MudTh>
-            <MudTh>Đăng nhập lần cuối</MudTh>
-            <MudTh Style="text-align:center">Thao tác</MudTh>
+            <MudTh>@L["users.username"]</MudTh>
+            <MudTh>@L["users.fullName"]</MudTh>
+            <MudTh>@L["users.role"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh>@L["users.lastLogin"]</MudTh>
+            <MudTh Style="text-align:center">@L["common.actions"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Tên đăng nhập">@context.Username</MudTd>
-            <MudTd DataLabel="Họ tên">@context.FullName</MudTd>
-            <MudTd DataLabel="Vai trò">
+            <MudTd DataLabel="@L["users.username"]">@context.Username</MudTd>
+            <MudTd DataLabel="@L["users.fullName"]">@context.FullName</MudTd>
+            <MudTd DataLabel="@L["users.role"]">
                 <MudChip T="string" Size="Size.Small" Color="@RoleColor(context.Role)">@context.Role</MudChip>
             </MudTd>
-            <MudTd DataLabel="Trạng thái">
+            <MudTd DataLabel="@L["common.status"]">
                 @if (context.IsActive)
                 {
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@L["common.active"]</MudChip>
                 }
                 else
                 {
-                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">@L["common.inactive"]</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Đăng nhập lần cuối">
+            <MudTd DataLabel="@L["users.lastLogin"]">
                 @(context.LastLoginDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")
             </MudTd>
-            <MudTd DataLabel="Thao tác" Style="text-align:center">
+            <MudTd DataLabel="@L["common.actions"]" Style="text-align:center">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
                                OnClick="() => OpenEditAsync(context)" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                OnClick="() => DeleteAsync(context)" />
             </MudTd>
         </RowTemplate>
-        <NoRecordsContent>
-            <MudText Class="pa-4">Chưa có người dùng nào.</MudText>
-        </NoRecordsContent>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["users.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -74,14 +71,8 @@
     {
         _loading = true;
         var result = await UserService.GetAllAsync();
-        if (result.Success)
-        {
-            _users = result.Data ?? new();
-        }
-        else
-        {
-            Snackbar.Add(result.Message ?? "Không tải được danh sách người dùng", Severity.Error);
-        }
+        if (result.Success) _users = result.Data ?? new();
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 
@@ -103,7 +94,7 @@
 
     private async Task OpenCreateAsync()
     {
-        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>("Thêm người dùng");
+        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>(L["users.add"]);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadAsync();
     }
@@ -111,7 +102,7 @@
     private async Task OpenEditAsync(UserDto user)
     {
         var parameters = new DialogParameters<Dialogs.UserDialog> { { x => x.Existing, user } };
-        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>("Sửa người dùng", parameters);
+        var dialog = await DialogService.ShowAsync<Dialogs.UserDialog>(L["users.edit"], parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadAsync();
     }
@@ -119,21 +110,21 @@
     private async Task DeleteAsync(UserDto user)
     {
         var confirm = await DialogService.ShowMessageBoxAsync(
-            "Xác nhận xóa",
-            $"Vô hiệu hóa người dùng \"{user.Username}\"?",
-            yesText: "Xóa", cancelText: "Hủy");
+            L["common.confirmDeleteTitle"],
+            $"{L["users.confirmDelete"]} — {user.Username}",
+            yesText: L["common.delete"], cancelText: L["common.cancel"]);
 
         if (confirm == true)
         {
             var result = await UserService.DeleteAsync(user.UserId);
             if (result.Success)
             {
-                Snackbar.Add("Đã vô hiệu hóa người dùng", Severity.Success);
+                Snackbar.Add(L["common.delete"], Severity.Success);
                 await LoadAsync();
             }
             else
             {
-                Snackbar.Add(result.Message ?? "Xóa thất bại", Severity.Error);
+                Snackbar.Add(result.Message ?? "Error", Severity.Error);
             }
         }
     }

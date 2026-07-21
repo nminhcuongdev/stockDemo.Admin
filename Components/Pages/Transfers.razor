@@ -1,46 +1,47 @@
 @page "/transfers"
+@inherits LocalizedComponentBase
 @inject TransferService TransferService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<PageTitle>Điều chuyển kho - StockDemo Admin</PageTitle>
+<PageTitle>@L["transfers.title"] - StockDemo Admin</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4">Điều chuyển kho</MudText>
+    <MudText Typo="Typo.h4">@L["transfers.title"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="OpenCreateAsync">
-        Tạo điều chuyển
+        @L["transfers.create"]
     </MudButton>
 </div>
 
 <MudPaper Elevation="1">
     <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true" Filter="Filter">
         <ToolBarContent>
-            <MudTextField @bind-Value="_search" Placeholder="Tìm sản phẩm / vị trí..." Immediate="true"
+            <MudTextField @bind-Value="_search" Placeholder="@L["transfers.searchHint"]" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Sản phẩm</MudTh>
-            <MudTh>Từ vị trí</MudTh>
-            <MudTh>Đến vị trí</MudTh>
-            <MudTh Style="text-align:right">Số lượng</MudTh>
-            <MudTh>Người tạo</MudTh>
-            <MudTh>Ngày</MudTh>
+            <MudTh>@L["common.product"]</MudTh>
+            <MudTh>@L["transfers.from"]</MudTh>
+            <MudTh>@L["transfers.to"]</MudTh>
+            <MudTh Style="text-align:right">@L["common.quantity"]</MudTh>
+            <MudTh>@L["common.createdBy"]</MudTh>
+            <MudTh>@L["common.date"]</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Sản phẩm">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
-            <MudTd DataLabel="Từ vị trí">@(context.FromLocation?.LocationName ?? $"#{context.FromLocationId}")</MudTd>
-            <MudTd DataLabel="Đến vị trí">
+            <MudTd DataLabel="@L["common.product"]">@(context.Product?.ProductName ?? $"#{context.ProductId}")</MudTd>
+            <MudTd DataLabel="@L["transfers.from"]">@(context.FromLocation?.LocationName ?? $"#{context.FromLocationId}")</MudTd>
+            <MudTd DataLabel="@L["transfers.to"]">
                 <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Class="mr-1" />
                 @(context.ToLocation?.LocationName ?? $"#{context.ToLocationId}")
             </MudTd>
-            <MudTd DataLabel="Số lượng" Style="text-align:right"><b>@context.Quantity</b></MudTd>
-            <MudTd DataLabel="Người tạo">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
-            <MudTd DataLabel="Ngày">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="@L["common.quantity"]" Style="text-align:right"><b>@context.Quantity</b></MudTd>
+            <MudTd DataLabel="@L["common.createdBy"]">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
+            <MudTd DataLabel="@L["common.date"]">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
         </RowTemplate>
-        <NoRecordsContent><MudText Class="pa-4">Chưa có phiếu điều chuyển nào.</MudText></NoRecordsContent>
-        <PagerContent><MudTablePager /></PagerContent>
+        <NoRecordsContent><MudText Class="pa-4">@L["transfers.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
     </MudTable>
 </MudPaper>
 
@@ -56,7 +57,7 @@
         _loading = true;
         var result = await TransferService.GetAllAsync();
         if (result.Success) _items = result.Data ?? new();
-        else Snackbar.Add(result.Message ?? "Không tải được danh sách điều chuyển", Severity.Error);
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
         _loading = false;
     }
 
@@ -71,7 +72,7 @@
 
     private async Task OpenCreateAsync()
     {
-        var dialog = await DialogService.ShowAsync<Dialogs.TransferDialog>("Tạo điều chuyển");
+        var dialog = await DialogService.ShowAsync<Dialogs.TransferDialog>(L["transfers.create"]);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadAsync();
     }

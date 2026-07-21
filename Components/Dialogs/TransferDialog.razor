@@ -3,6 +3,7 @@
 @inject TransferService TransferService
 @inject UserSession Session
 @inject ISnackbar Snackbar
+@inject LocalizationService L
 
 <MudDialog>
     <DialogContent>
@@ -13,36 +14,35 @@
         else
         {
             <MudForm @ref="_form">
-                <MudSelect T="int" @bind-Value="_sourceStockId" Label="Tồn kho nguồn" Required="true"
-                           RequiredError="Chọn tồn kho nguồn" Variant="Variant.Outlined" Class="mb-3"
-                           ToStringFunc="StockLabel">
+                <MudSelect T="int" @bind-Value="_sourceStockId" Label="@L["transfers.source"]" Required="true"
+                           Variant="Variant.Outlined" Class="mb-3" ToStringFunc="StockLabel">
                     @foreach (var s in _stocks.Where(s => s.Quantity > 0))
                     {
                         <MudSelectItem T="int" Value="s.StockId">@StockLabel(s.StockId)</MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudSelect T="int" @bind-Value="_toLocationId" Label="Vị trí đích" Required="true"
-                           RequiredError="Chọn vị trí đích" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelect T="int" @bind-Value="_toLocationId" Label="@L["transfers.dest"]" Required="true"
+                           Variant="Variant.Outlined" Class="mb-3">
                     @foreach (var l in _locations.Where(l => l.IsActive && l.LocationId != SourceLocationId))
                     {
                         <MudSelectItem T="int" Value="l.LocationId">@l.LocationName (@l.LocationCode)</MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudNumericField @bind-Value="_quantity" Label="Số lượng" Min="1" Max="MaxQuantity"
+                <MudNumericField @bind-Value="_quantity" Label="@L["common.quantity"]" Min="1" Max="MaxQuantity"
                                  Required="true" Variant="Variant.Outlined" />
                 @if (MaxQuantity > 0)
                 {
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Tối đa: @MaxQuantity</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["transfers.max"]: @MaxQuantity</MudText>
                 }
             </MudForm>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton OnClick="Cancel">@L["common.cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_saving || _loading">
-            @(_saving ? "Đang chuyển..." : "Điều chuyển")
+            @(_saving ? L["transfers.submitting"] : L["transfers.submit"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -76,7 +76,7 @@
     {
         var s = _stocks.FirstOrDefault(x => x.StockId == stockId);
         if (s is null) return "";
-        return $"{s.Product?.ProductName ?? $"#{s.ProductId}"} @ {s.Location?.LocationName ?? $"#{s.LocationId}"} (tồn {s.Quantity})";
+        return $"{s.Product?.ProductName ?? $"#{s.ProductId}"} @ {s.Location?.LocationName ?? $"#{s.LocationId}"} ({L["transfers.onHand"]} {s.Quantity})";
     }
 
     private void Cancel() => MudDialog.Cancel();
