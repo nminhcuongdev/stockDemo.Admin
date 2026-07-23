@@ -1,0 +1,159 @@
+@inject StockTakeService StockTakeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject LocalizationService L
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        }
+        else if (_session is null)
+        {
+            <MudAlert Severity="Severity.Error">@L["stockTakes.notFound"]</MudAlert>
+        }
+        else
+        {
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["common.location"]</MudText>
+                    <MudText Typo="Typo.body1">@(_session.Location?.LocationName ?? $"#{_session.LocationId}")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["common.status"]</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@(_session.IsCompleted ? Color.Success : Color.Warning)">
+                        @(_session.IsCompleted ? L["stockTakes.statusCompleted"] : L["stockTakes.statusInProgress"])
+                    </MudChip>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["common.createdBy"]</MudText>
+                    <MudText Typo="Typo.body1">@(_session.User?.FullName ?? $"#{_session.CreatedBy}")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["common.date"]</MudText>
+                    <MudText Typo="Typo.body1">
+                        @_session.CreatedDate.ToString("dd/MM/yyyy HH:mm")
+                        @if (_session.CompletedDate is not null)
+                        {
+                            <span class="mud-text-secondary">
+                                &rarr; @_session.CompletedDate.Value.ToString("dd/MM/yyyy HH:mm")
+                            </span>
+                        }
+                    </MudText>
+                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_session.Note))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@L["stockTakes.note"]</MudText>
+                        <MudText Typo="Typo.body2">@_session.Note</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (!_session.IsCompleted && _session.VarianceLineCount > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                    @L["stockTakes.pendingWarning"]
+                </MudAlert>
+            }
+
+            <MudSimpleTable Dense="true" Hover="true" Striped="true" Style="max-height:340px;overflow:auto">
+                <thead>
+                    <tr>
+                        <th>@L["common.product"]</th>
+                        <th style="text-align:right">@L["stockTakes.systemQty"]</th>
+                        <th style="text-align:right">@L["stockTakes.countedQty"]</th>
+                        <th style="text-align:right">@L["stockTakes.variance"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _session.Items)
+                    {
+                        <tr>
+                            <td>@(item.Product?.ProductName ?? $"#{item.ProductId}")</td>
+                            <td style="text-align:right">@item.SystemQuantity</td>
+                            <td style="text-align:right"><b>@item.CountedQuantity</b></td>
+                            <td style="text-align:right">
+                                @if (item.Variance == 0)
+                                {
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">0</MudText>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(item.Variance > 0 ? Color.Info : Color.Error)">
+                                        @(item.Variance > 0 ? "+" : "")@item.Variance
+                                    </MudChip>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                @L["stockTakes.varianceSummary"]: @_session.VarianceLineCount / @_session.Items.Count
+                &nbsp;·&nbsp; @L["stockTakes.netVariance"]:
+                @(_session.NetVariance > 0 ? "+" : "")@_session.NetVariance
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["common.close"]</MudButton>
+        @if (_session is not null && !_session.IsCompleted)
+        {
+            <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="CompleteAsync" Disabled="_completing">
+                @(_completing ? L["stockTakes.completing"] : L["stockTakes.complete"])
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int StockTakeId { get; set; }
+
+    private StockTakeDto? _session;
+    private bool _loading = true;
+    private bool _completing;
+    private bool _changed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await StockTakeService.GetByIdAsync(StockTakeId);
+        if (result.Success) _session = result.Data;
+        else Snackbar.Add(result.Message ?? L["stockTakes.notFound"], Severity.Error);
+        _loading = false;
+    }
+
+    // Reconciliation rewrites on-hand quantities and cannot be undone, so confirm first.
+    private async Task CompleteAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["stockTakes.complete"],
+            L["stockTakes.confirmComplete"],
+            yesText: L["stockTakes.complete"],
+            cancelText: L["common.cancel"]);
+
+        if (confirmed != true) return;
+
+        _completing = true;
+        var result = await StockTakeService.CompleteAsync(StockTakeId);
+        _completing = false;
+
+        if (result.Success)
+        {
+            _session = result.Data ?? _session;
+            _changed = true;
+            Snackbar.Add(L["stockTakes.completed"], Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? L["stockTakes.completeFailed"], Severity.Error);
+        }
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(_changed));
+}

@@ -1,0 +1,225 @@
+@inject StockService StockService
+@inject LocationService LocationService
+@inject ProductService ProductService
+@inject StockTakeService StockTakeService
+@inject UserSession Session
+@inject ISnackbar Snackbar
+@inject LocalizationService L
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        }
+        else
+        {
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int" Value="_locationId" ValueChanged="OnLocationChangedAsync"
+                               Label="@L["stockTakes.location"]" Required="true" Variant="Variant.Outlined">
+                        @foreach (var l in _locations.Where(l => l.IsActive))
+                        {
+                            <MudSelectItem T="int" Value="l.LocationId">@l.LocationName (@l.LocationCode)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_note" Label="@L["stockTakes.note"]" Variant="Variant.Outlined"
+                                  MaxLength="500" />
+                </MudItem>
+            </MudGrid>
+
+            @if (_locationId == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">@L["stockTakes.pickLocationFirst"]</MudAlert>
+            }
+            else
+            {
+                <div class="d-flex justify-space-between align-center mt-2 mb-2">
+                    <MudText Typo="Typo.subtitle2">@L["stockTakes.countSheet"] (@_lines.Count)</MudText>
+                    <MudSelect T="int" Value="0" ValueChanged="AddProductLine" Label="@L["stockTakes.addProduct"]"
+                               Dense="true" Variant="Variant.Outlined" Style="max-width:320px"
+                               Disabled="!AvailableProducts.Any()">
+                        @foreach (var p in AvailableProducts)
+                        {
+                            <MudSelectItem T="int" Value="p.ProductId">@p.ProductName (@p.ProductCode)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+
+                @if (_lines.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true">@L["stockTakes.emptyLocation"]</MudAlert>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Striped="true" Style="max-height:340px;overflow:auto">
+                        <thead>
+                            <tr>
+                                <th>@L["common.product"]</th>
+                                <th style="text-align:right">@L["stockTakes.systemQty"]</th>
+                                <th style="text-align:right;width:140px">@L["stockTakes.countedQty"]</th>
+                                <th style="text-align:right">@L["stockTakes.variance"]</th>
+                                <th style="width:48px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _lines)
+                            {
+                                <tr @key="line.ProductId">
+                                    <td>@line.ProductName</td>
+                                    <td style="text-align:right">@line.SystemQuantity</td>
+                                    <td>
+                                        <MudNumericField @bind-Value="line.CountedQuantity" Min="0" Dense="true"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         HideSpinButtons="false" />
+                                    </td>
+                                    <td style="text-align:right">
+                                        @if (line.Variance == 0)
+                                        {
+                                            <MudText Typo="Typo.body2" Class="mud-text-secondary">0</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@(line.Variance > 0 ? Color.Info : Color.Error)">
+                                                @(line.Variance > 0 ? "+" : "")@line.Variance
+                                            </MudChip>
+                                        }
+                                    </td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                       OnClick="@(() => _lines.Remove(line))" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                        @L["stockTakes.varianceSummary"]: @VarianceLineCount / @_lines.Count
+                    </MudText>
+                }
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["common.cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync"
+                   Disabled="_saving || _loading || _locationId == 0 || _lines.Count == 0">
+            @(_saving ? L["common.saving"] : L["stockTakes.submit"])
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>One product being counted. Variance is derived so it always tracks the input.</summary>
+    private sealed class CountLine
+    {
+        public int ProductId { get; init; }
+        public string ProductName { get; init; } = "";
+        public int SystemQuantity { get; init; }
+        public int CountedQuantity { get; set; }
+        public int Variance => CountedQuantity - SystemQuantity;
+    }
+
+    private List<LocationDto> _locations = new();
+    private List<StockDto> _stocks = new();
+    private List<ProductDto> _products = new();
+    private readonly List<CountLine> _lines = new();
+
+    private int _locationId;
+    private string? _note;
+    private bool _loading = true;
+    private bool _saving;
+
+    private int VarianceLineCount => _lines.Count(l => l.Variance != 0);
+
+    /// <summary>Products not already on the sheet — lets the counter record stock the system doesn't know about.</summary>
+    private IEnumerable<ProductDto> AvailableProducts =>
+        _products.Where(p => _lines.All(l => l.ProductId != p.ProductId));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var locations = await LocationService.GetAllAsync();
+        var stocks = await StockService.GetAllAsync();
+        var products = await ProductService.GetAllAsync();
+        _locations = locations.Data ?? new();
+        _stocks = stocks.Data ?? new();
+        _products = products.Data ?? new();
+        _loading = false;
+    }
+
+    private void OnLocationChangedAsync(int locationId)
+    {
+        _locationId = locationId;
+        // Pre-fill the sheet with what the system currently believes is here, counted
+        // quantity seeded to the system figure so untouched rows record zero variance.
+        _lines.Clear();
+        foreach (var stock in _stocks.Where(s => s.LocationId == locationId))
+        {
+            _lines.Add(new CountLine
+            {
+                ProductId = stock.ProductId,
+                ProductName = stock.Product?.ProductName ?? $"#{stock.ProductId}",
+                SystemQuantity = stock.Quantity,
+                CountedQuantity = stock.Quantity,
+            });
+        }
+    }
+
+    private void AddProductLine(int productId)
+    {
+        if (productId == 0) return;
+        if (_lines.Any(l => l.ProductId == productId)) return;
+
+        var product = _products.FirstOrDefault(p => p.ProductId == productId);
+        if (product is null) return;
+
+        // Not in stock at this location, so the system quantity is zero; anything
+        // counted here shows up as a positive variance.
+        _lines.Add(new CountLine
+        {
+            ProductId = productId,
+            ProductName = product.ProductName ?? $"#{productId}",
+            SystemQuantity = 0,
+            CountedQuantity = 0,
+        });
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        if (_locationId == 0 || _lines.Count == 0) return;
+
+        _saving = true;
+        var dto = new CreateStockTakeDto
+        {
+            LocationId = _locationId,
+            // The API declares Note as nullable, but send an empty string rather than
+            // null to stay consistent with the other create endpoints.
+            Note = _note ?? string.Empty,
+            CreatedBy = Session.CurrentUserId ?? 0,
+            Items = _lines
+                .Select(l => new StockTakeCountLineDto { ProductId = l.ProductId, CountedQuantity = l.CountedQuantity })
+                .ToList(),
+        };
+
+        var result = await StockTakeService.CreateAsync(dto);
+        _saving = false;
+
+        if (result.Success)
+        {
+            Snackbar.Add(L["stockTakes.created"], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(result.Message ?? L["stockTakes.createFailed"], Severity.Error);
+        }
+    }
+}

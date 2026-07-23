@@ -1,0 +1,120 @@
+@page "/stock-takes"
+@inherits LocalizedComponentBase
+@inject StockTakeService StockTakeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>@L["stockTakes.title"] - StockDemo Admin</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">@L["stockTakes.title"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.FactCheck" OnClick="OpenCreateAsync">
+        @L["stockTakes.create"]
+    </MudButton>
+</div>
+
+<MudPaper Elevation="1">
+    <MudTable Items="_items" Loading="_loading" Hover="true" Striped="true" Filter="Filter"
+              OnRowClick="@((TableRowClickEventArgs<StockTakeDto> e) => OpenDetailAsync(e.Item))"
+              RowClass="cursor-pointer">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="@L["stockTakes.searchHint"]" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>#</MudTh>
+            <MudTh>@L["common.location"]</MudTh>
+            <MudTh>@L["common.status"]</MudTh>
+            <MudTh Style="text-align:right">@L["stockTakes.lines"]</MudTh>
+            <MudTh Style="text-align:right">@L["stockTakes.varianceLines"]</MudTh>
+            <MudTh Style="text-align:right">@L["stockTakes.netVariance"]</MudTh>
+            <MudTh>@L["common.createdBy"]</MudTh>
+            <MudTh>@L["common.date"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="#">@context.StockTakeId</MudTd>
+            <MudTd DataLabel="@L["common.location"]">
+                @(context.Location?.LocationName ?? $"#{context.LocationId}")
+            </MudTd>
+            <MudTd DataLabel="@L["common.status"]">
+                <MudChip T="string" Size="Size.Small" Color="@(context.IsCompleted ? Color.Success : Color.Warning)">
+                    @(context.IsCompleted ? L["stockTakes.statusCompleted"] : L["stockTakes.statusInProgress"])
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="@L["stockTakes.lines"]" Style="text-align:right">@context.Items.Count</MudTd>
+            <MudTd DataLabel="@L["stockTakes.varianceLines"]" Style="text-align:right">
+                @if (context.VarianceLineCount == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">0</MudText>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">@context.VarianceLineCount</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["stockTakes.netVariance"]" Style="text-align:right">
+                <b>@(context.NetVariance > 0 ? "+" : "")@context.NetVariance</b>
+            </MudTd>
+            <MudTd DataLabel="@L["common.createdBy"]">@(context.User?.FullName ?? $"#{context.CreatedBy}")</MudTd>
+            <MudTd DataLabel="@L["common.date"]">@context.CreatedDate.ToString("dd/MM/yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent><MudText Class="pa-4">@L["stockTakes.none"]</MudText></NoRecordsContent>
+        <PagerContent><MudTablePager RowsPerPageString="@L["common.rowsPerPage"]" /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<StockTakeDto> _items = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await StockTakeService.GetAllAsync();
+        if (result.Success) _items = (result.Data ?? new()).OrderByDescending(s => s.StockTakeId).ToList();
+        else Snackbar.Add(result.Message ?? "Error", Severity.Error);
+        _loading = false;
+    }
+
+    private bool Filter(StockTakeDto s)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var q = _search.Trim();
+        return (s.Location?.LocationName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.User?.FullName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.Note?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || s.StockTakeId.ToString().Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<Dialogs.StockTakeDialog>(
+            L["stockTakes.create"],
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task OpenDetailAsync(StockTakeDto? session)
+    {
+        if (session is null) return;
+
+        var parameters = new DialogParameters<Dialogs.StockTakeDetailDialog>
+        {
+            { x => x.StockTakeId, session.StockTakeId }
+        };
+        var dialog = await DialogService.ShowAsync<Dialogs.StockTakeDetailDialog>(
+            $"{L["stockTakes.detail"]} #{session.StockTakeId}",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        var result = await dialog.Result;
+        // The detail dialog returns true when reconciliation ran, so refresh the list.
+        if (result is not null && !result.Canceled && result.Data is true) await LoadAsync();
+    }
+}

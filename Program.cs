@@ -36,6 +36,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<MovementService>();
 builder.Services.AddScoped<TransferService>();
+builder.Services.AddScoped<StockTakeService>();
 builder.Services.AddScoped<DeliveryOrderService>();
 builder.Services.AddScoped<ReportService>();
 
