@@ -1,5 +1,7 @@
 # StockDemo.Admin — Blazor Admin Panel
 
+[![CI](https://github.com/nminhcuongdev/stockDemo.Admin/actions/workflows/ci.yml/badge.svg)](https://github.com/nminhcuongdev/stockDemo.Admin/actions/workflows/ci.yml)
+
 A data-administration web app for the **StockDemo** warehouse system, built with
 **ASP.NET Core Blazor Web App (.NET 8, Interactive Server)** and **MudBlazor**.
 It consumes the existing **StockDemo.API** over HTTP with JWT authentication — no

@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (.NET 8 / Blazor)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore StockDemo.Admin.csproj
+
+      # Warnings are surfaced but do not fail the build yet; flip to
+      # -warnaserror once the existing warnings are cleaned up.
+      - name: Build
+        run: dotnet build StockDemo.Admin.csproj --configuration Release --no-restore
+
+      - name: Publish (verifies the app packages cleanly)
+        run: dotnet publish StockDemo.Admin.csproj --configuration Release --no-build -o publish
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # No test project exists yet (bUnit + xUnit are planned). Skip cleanly
+      # rather than failing, so this job starts passing the moment one lands.
+      - name: Detect test projects
+        id: detect
+        run: |
+          if ls **/*Tests*.csproj >/dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No test project found yet — skipping."
+          fi
+
+      - name: Test
+        if: steps.detect.outputs.found == 'true'
+        run: dotnet test --configuration Release --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always() && steps.detect.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: TestResults/*.trx
